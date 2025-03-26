@@ -1,0 +1,42 @@
+services:
+  mysql:
+    container_name: mysql
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      TZ: ${MYSQL_TZ}
+    command: >
+      --max_connections=${MYSQL_MAX_CONNECTIONS}
+      --innodb-buffer-pool-size=${MYSQL_INNODB_BUFFER_POOL_SIZE}
+      --innodb-log-file-size=${MYSQL_INNODB_LOG_FILE_SIZE}
+      --innodb-log-buffer-size=${MYSQL_INNODB_LOG_BUFFER_SIZE}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d
+    networks:
+      - monitoring
+
+  mysql_exporter:
+    container_name: mysql_exporter
+    image: prom/mysqld-exporter:latest
+    restart: always
+    command:
+      - "--mysqld.username=exporter:exporter"
+      - "--mysqld.address=mysql:3306"
+    ports:
+      - "${MYSQL_EXPORTER_PORT}:9104"
+    depends_on:
+      - mysql
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  mysql_data:

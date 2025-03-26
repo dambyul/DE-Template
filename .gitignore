@@ -1,0 +1,8 @@
+# Airflow
+airflow/logs/
+airflow/config/
+airflow/plugins/
+
+# __pycache__ 및 기타 임시 파일
+**/__pycache__/
+**/*.pyc

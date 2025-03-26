@@ -1,0 +1,47 @@
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: ${POSTGRES_TZ}
+      PGDATA: /var/lib/postgresql/data
+      POSTGRES_SHARED_BUFFERS: ${POSTGRES_SHARED_BUFFERS}
+      POSTGRES_WORK_MEM: ${POSTGRES_WORK_MEM}
+      POSTGRES_MAINTENANCE_WORK_MEM: ${POSTGRES_MAINTENANCE_WORK_MEM}
+      POSTGRES_MAX_CONNECTIONS: ${POSTGRES_MAX_CONNECTIONS}
+      POSTGRES_WAL_LEVEL: ${POSTGRES_WAL_LEVEL}
+      POSTGRES_WAL_KEEP_SEGMENTS: ${POSTGRES_WAL_KEEP_SEGMENTS}
+      POSTGRES_AUTOVACUUM: ${POSTGRES_AUTOVACUUM}
+      POSTGRES_AUTOVACUUM_MAX_WORKERS: ${POSTGRES_AUTOVACUUM_MAX_WORKERS}
+      POSTGRES_AUTOVACUUM_VACUUM_SCALE_FACTOR: ${POSTGRES_AUTOVACUUM_VACUUM_SCALE_FACTOR}
+      POSTGRES_AUTOVACUUM_ANALYZE_SCALE_FACTOR: ${POSTGRES_AUTOVACUUM_ANALYZE_SCALE_FACTOR}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - monitoring
+
+  postgres_exporter:
+    container_name: postgres_exporter
+    image: prometheuscommunity/postgres-exporter:latest
+    restart: always
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable"
+    ports:
+      - "${POSTGRES_EXPORTER_PORT}:9187"
+    depends_on:
+      - postgres
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  postgres_data:
