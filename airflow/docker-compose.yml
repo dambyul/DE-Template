@@ -12,6 +12,10 @@ x-airflow-common:
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    AIRFLOW__METRICS__STATSD_ON: 'true'
+    AIRFLOW__METRICS__STATSD_HOST: 'statsd-exporter'
+    AIRFLOW__METRICS__STATSD_PORT: '${STATSD_EXPORTER_PORT}'
+    AIRFLOW__METRICS__STATSD_PREFIX: 'airflow'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   networks:
     - airflow-network
@@ -68,7 +72,7 @@ services:
     environment:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable&connect_timeout=5"
     ports:
-      - "${POSTGRES_EXPORTER_PORT}:${POSTGRES_EXPORTER_PORT}"
+      - "${POSTGRES_EXPORTER_PORT}:9187"
     restart: unless-stopped
     depends_on:
       postgres:
@@ -80,7 +84,7 @@ services:
     container_name: airflow-statsd-exporter
     image: prom/statsd-exporter:latest
     ports:
-      - "${STATSD_EXPORTER_PORT}:${STATSD_EXPORTER_PORT}"
+      - "${STATSD_EXPORTER_WEB_PORT}:9102"
     restart: unless-stopped
     networks:
       - airflow-network
