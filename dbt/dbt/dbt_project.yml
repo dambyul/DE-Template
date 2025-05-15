@@ -6,6 +6,7 @@ version: '1.0.0'
 profile: default
 
 model-paths: ["models"]
+macro-paths: ["macros"]
 
 models:
   my_project:
