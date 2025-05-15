@@ -1,0 +1,10 @@
+services:
+  dbt:
+    container_name: dbt
+    image: ${DBT_IMAGE}
+    restart: unless-stopped
+    volumes:
+      - ./dbt:/usr/app
+      - ./profiles:/root/.dbt
+    working_dir: /usr/app
+    entrypoint: [ "tail", "-f", "/dev/null" ]

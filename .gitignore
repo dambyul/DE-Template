@@ -3,6 +3,11 @@ airflow/logs/
 airflow/config/
 airflow/plugins/
 
+# DBT
+dbt/profiles/.user.yml
+dbt/dbt/logs/
+dbt/dbt/target/
+
 # __pycache__ 및 기타 임시 파일
 **/__pycache__/
 **/*.pyc
