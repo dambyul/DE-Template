@@ -11,12 +11,12 @@ x-airflow-common:
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW__METRICS__STATSD_ON: 'true'
     AIRFLOW__METRICS__STATSD_HOST: 'statsd-exporter'
     AIRFLOW__METRICS__STATSD_PORT: '${STATSD_EXPORTER_PORT}'
     AIRFLOW__METRICS__STATSD_PREFIX: 'airflow'
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   networks:
     - airflow-network
   volumes:
@@ -89,12 +89,12 @@ services:
     networks:
       - airflow-network
 
-  airflow-webserver:
+  airflow-apiserver:
     <<: *airflow-common
-    container_name: airflow-webserver
-    command: webserver
+    container_name: airflow-apiserver
+    command: api-server
     ports:
-      - "${AIRFLOW_WEBSERVER_PORT}:8080"
+      - "${AIRFLOW_APISERVER_PORT}:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
@@ -104,7 +104,7 @@ services:
     restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      airflow-migrate:
         condition: service_completed_successfully
 
   airflow-scheduler:
@@ -120,7 +120,7 @@ services:
     restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      airflow-migrate:
         condition: service_completed_successfully
 
   airflow-worker:
@@ -141,7 +141,7 @@ services:
       DUMB_INIT_SETSID: "0"
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      airflow-migrate:
         condition: service_completed_successfully
 
   airflow-triggerer:
@@ -157,7 +157,7 @@ services:
     restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      airflow-migrate:
         condition: service_completed_successfully
 
   airflow-cli:
@@ -173,14 +173,14 @@ services:
       - -c
       - airflow
 
-  airflow-init:
+  airflow-migrate:
     <<: *airflow-common
-    container_name: airflow-init
+    container_name: airflow-migrate
     entrypoint: /bin/bash
     command:
       - -c
       - |
-        airflow db init
+        airflow db migrate
         airflow users create \
           --username ${AIRFLOW_ADMIN_USER} \
           --password ${AIRFLOW_ADMIN_PASSWORD} \

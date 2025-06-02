@@ -1,0 +1,19 @@
+services:
+  airflow-apiserver:
+    build:
+      context: .
+  airflow-scheduler:
+    build:
+      context: .
+  airflow-worker:
+    build:
+      context: .
+  airflow-triggerer:
+    build:
+      context: .
+  airflow-cli:
+    build:
+      context: .
+  airflow-migrate:
+    build:
+      context: .
