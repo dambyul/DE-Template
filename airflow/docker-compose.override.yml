@@ -11,6 +11,9 @@ services:
   airflow-triggerer:
     build:
       context: .
+  airflow-dagprocessor:
+    build:
+      context: .
   airflow-cli:
     build:
       context: .
