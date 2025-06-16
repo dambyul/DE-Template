@@ -3,12 +3,12 @@ from airflow.providers.standard.operators.empty import EmptyOperator
 from datetime import datetime
 
 with DAG(
-    dag_id="sample_sdk_dag",
+    dag_id="sample_dag",
     start_date=datetime(2025, 6, 1),
-    schedule_interval=None,
+    schedule="@once", 
     catchup=False,
-    description="A simple DAG with 3 no-op tasks using airflow.sdk",
-    tags=["example", "sdk"],
+    description="작동 확인용 샘플 DAG",
+    tags=["example"],
 ) as dag:
 
     t1 = EmptyOperator(task_id="start")
