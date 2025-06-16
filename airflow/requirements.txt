@@ -1,1 +1,2 @@
 apache-airflow-providers-fab
+apache-airflow-providers-git
