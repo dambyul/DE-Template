@@ -1,15 +1,14 @@
 from airflow.sdk import DAG
-from airflow.decorators import task
 from airflow.providers.standard.operators.empty import EmptyOperator
-from airflow.utils.dates import days_ago
+from datetime import datetime
 
 with DAG(
-    dag_id="sample_dag",
-    start_date=days_ago(1),
+    dag_id="sample_sdk_dag",
+    start_date=datetime(2025, 6, 1),
     schedule_interval=None,
     catchup=False,
-    description="작동 확인용 샘플 DAG",
-    tags=["example"],
+    description="A simple DAG with 3 no-op tasks using airflow.sdk",
+    tags=["example", "sdk"],
 ) as dag:
 
     t1 = EmptyOperator(task_id="start")
