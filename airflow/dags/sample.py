@@ -12,7 +12,7 @@ with DAG(
 ) as dag:
 
     t1 = EmptyOperator(task_id="start")
-    t2 = EmptyOperator(task_id="middle")
+    #t2 = EmptyOperator(task_id="middle")
     t3 = EmptyOperator(task_id="end")
 
-    t1 >> t2 >> t3
+    t1 >> t3
