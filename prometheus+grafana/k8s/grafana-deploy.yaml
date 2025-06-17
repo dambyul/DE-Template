@@ -27,9 +27,9 @@ spec:
             - name: GF_SECURITY_ADMIN_PASSWORD
               value: "admin@@123"
           volumeMounts:
-            - name: grafana-storage
+            - name: grafana-data
               mountPath: /var/lib/grafana
       volumes:
-        - name: grafana-storage
+        - name: grafana-data
           persistentVolumeClaim:
-            claimName: grafana-storage
+            claimName: grafana-data
