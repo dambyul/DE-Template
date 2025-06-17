@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dbt-git-sync
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: git-sync
+          image: alpine/git
+          command:
+            - sh
+            - -c
+            - |
+              rm -rf /dbt/*
+              git clone --depth=1 -b main https://github.com/dambyul/DE-Template.git /dbt
+          volumeMounts:
+            - name: dbt-volume
+              mountPath: /dbt
+      volumes:
+        - name: dbt-volume
+          persistentVolumeClaim:
+            claimName: dbt-pvc

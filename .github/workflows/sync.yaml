@@ -1,0 +1,22 @@
+name: Sync dbt to Kubernetes PVC
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  sync-dbt:
+    name: Sync dbt to PVC on K8s
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-kubectl@v4
+
+      - run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
+
+      - run: |
+          kubectl delete job dbt-git-sync --ignore-not-found
+          kubectl apply -f dbt/k8s/dbt-git-sync.yaml
