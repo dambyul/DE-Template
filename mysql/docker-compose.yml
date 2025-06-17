@@ -10,7 +10,6 @@ services:
     command: >
       --max_connections=${MYSQL_MAX_CONNECTIONS}
       --innodb-buffer-pool-size=${MYSQL_INNODB_BUFFER_POOL_SIZE}
-      --innodb-log-file-size=${MYSQL_INNODB_LOG_FILE_SIZE}
       --innodb-log-buffer-size=${MYSQL_INNODB_LOG_BUFFER_SIZE}
     ports:
       - "${MYSQL_PORT}:3306"
