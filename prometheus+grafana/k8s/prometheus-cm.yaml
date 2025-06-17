@@ -16,7 +16,7 @@ data:
 
       - job_name: 'mysql'
         static_configs:
-          - targets: ['192.168.0.102:9104']
+          - targets: ['mysql-exporter:9104']
 
       - job_name: 'postgres'
         static_configs:

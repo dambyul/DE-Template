@@ -1,0 +1,15 @@
+apiVersion: v1
+data:
+  exporter_user.sql: |
+    CREATE USER 'exporter'@'10.43.%' IDENTIFIED BY 'exporter';
+    GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'10.43.%';
+    FLUSH PRIVILEGES;
+  root.sql: |
+    CREATE USER 'root'@'%' IDENTIFIED BY 'root@@123';
+    GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
+    FLUSH PRIVILEGES;
+kind: ConfigMap
+metadata:
+  labels:
+    io.kompose.service: mysql
+  name: mysql-cm

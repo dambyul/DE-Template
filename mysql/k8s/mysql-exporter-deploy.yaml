@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: mysql-exporter
+  name: mysql-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: mysql-exporter
+  template:
+    metadata:
+      labels:
+        io.kompose.service: mysql-exporter
+    spec:
+      containers:
+        - args:
+            - --mysqld.username=exporter:exporter
+            - --mysqld.address=mysql:3306
+          image: prom/mysqld-exporter:latest
+          name: mysql-exporter
+          ports:
+            - containerPort: 9104
+              protocol: TCP
+      restartPolicy: Always
