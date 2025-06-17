@@ -1,8 +1,9 @@
 name: Sync dbt to Kubernetes PVC
 
-on:
-  push:
-    branches: [ main ]
+# Github Action을 사용하여 DBT 스크립트를 최신화
+# on:
+#   push:
+#     branches: [ main ]
 
 jobs:
   sync-dbt:
@@ -13,6 +14,7 @@ jobs:
 
       - uses: azure/setup-kubectl@v4
 
+      # k8s config
       - run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
