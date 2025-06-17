@@ -20,7 +20,7 @@ data:
 
       - job_name: 'postgres'
         static_configs:
-          - targets: ['192.168.0.102:9188']
+          - targets: ['postgres-exporter:9188']
 kind: ConfigMap
 metadata:
   labels:
