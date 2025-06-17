@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: postgres
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: postgres
+    spec:
+      containers:
+        - env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data
+            - name: POSTGRES_AUTOVACUUM
+              value: "on"
+            - name: POSTGRES_AUTOVACUUM_ANALYZE_SCALE_FACTOR
+              value: "0.1"
+            - name: POSTGRES_AUTOVACUUM_MAX_WORKERS
+              value: "3"
+            - name: POSTGRES_AUTOVACUUM_VACUUM_SCALE_FACTOR
+              value: "0.2"
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_MAINTENANCE_WORK_MEM
+              value: 64MB
+            - name: POSTGRES_MAX_CONNECTIONS
+              value: "100"
+            - name: POSTGRES_PASSWORD
+              value: root@@123
+            - name: POSTGRES_SHARED_BUFFERS
+              value: 256MB
+            - name: POSTGRES_USER
+              value: root
+            - name: POSTGRES_WAL_KEEP_SEGMENTS
+              value: "3"
+            - name: POSTGRES_WAL_LEVEL
+              value: replica
+            - name: POSTGRES_WORK_MEM
+              value: 16MB
+            - name: TZ
+              value: Asia/Seoul
+          image: postgres:latest
+          name: postgres
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
+      restartPolicy: Always
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-data

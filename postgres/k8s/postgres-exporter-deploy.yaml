@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: postgres-exporter
+  name: postgres-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: postgres-exporter
+  template:
+    metadata:
+      labels:
+        io.kompose.service: postgres-exporter
+    spec:
+      containers:
+        - env:
+            - name: DATA_SOURCE_NAME
+              value: postgresql://root:root@@123@postgres:5432/postgres?sslmode=disable
+          image: prometheuscommunity/postgres-exporter:latest
+          name: postgres-exporter
+          ports:
+            - containerPort: 9187
+              protocol: TCP
+      restartPolicy: Always
