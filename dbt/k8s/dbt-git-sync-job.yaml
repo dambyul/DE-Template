@@ -7,7 +7,7 @@ spec:
     spec:
       restartPolicy: Never
       containers:
-        - name: git-sync
+        - name: dbt-git-sync
           image: alpine/git
           command:
             - sh
@@ -16,9 +16,9 @@ spec:
               rm -rf /dbt/*
               git clone --depth=1 -b main https://github.com/dambyul/DE-Template.git /dbt
           volumeMounts:
-            - name: dbt-volume
+            - name: dbt-data
               mountPath: /dbt
       volumes:
-        - name: dbt-volume
+        - name: dbt-data
           persistentVolumeClaim:
-            claimName: dbt-pvc
+            claimName: dbt-data
