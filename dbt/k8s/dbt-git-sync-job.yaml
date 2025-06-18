@@ -13,8 +13,11 @@ spec:
             - sh
             - -c
             - |
-              rm -rf /dbt/*
-              git clone --depth=1 -b main https://github.com/dambyul/DE-Template.git /dbt
+              rm -rf /dbt/* && \
+              git clone --depth=1 --filter=blob:none --sparse https://github.com/dambyul/DE-Template.git /tmp/repo && \
+              cd /tmp/repo && \
+              git sparse-checkout set dbt && \
+              cp -r dbt/* /dbt/
           volumeMounts:
             - name: dbt-data
               mountPath: /dbt
