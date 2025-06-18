@@ -19,4 +19,4 @@ jobs:
 
       - name: Apply dbt-git-sync Job YAML to Kubernetes
         run: |
-          kubectl apply -f dbt/k8s/dbt-git-sync.yaml
+          kubectl apply -f dbt/k8s/dbt-git-sync-job.yaml
