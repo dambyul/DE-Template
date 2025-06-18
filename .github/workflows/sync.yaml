@@ -1,24 +1,22 @@
 name: Sync dbt to Kubernetes PVC
 
-# Github Action을 사용하여 DBT 스크립트를 최신화
-# on:
-#   push:
-#     branches: [ main ]
+on:
+  push:
+    branches: [ main ]
 
 jobs:
   sync-dbt:
     name: Sync dbt to PVC on K8s
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: azure/setup-kubectl@v4
-
-      # k8s config
-      - run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
-
-      - run: |
+      - name: Delete existing dbt-git-sync Job if present
+        run: |
           kubectl delete job dbt-git-sync --ignore-not-found
+
+      - name: Apply dbt-git-sync Job YAML to Kubernetes
+        run: |
           kubectl apply -f dbt/k8s/dbt-git-sync.yaml
