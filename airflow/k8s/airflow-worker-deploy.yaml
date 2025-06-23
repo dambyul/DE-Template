@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: airflow-worker
+  name: airflow-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: airflow-worker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: airflow-worker
+    spec:
+      containers:
+        - name: airflow-worker
+          image: dambyul/airflow:de-template
+          args:
+            - celery
+            - worker
+          envFrom:
+            - configMapRef:
+                name: airflow
+          env:
+            - name: DUMB_INIT_SETSID
+              value: "0"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - >
+                  celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$(hostname)" ||
+                  celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$(hostname)"
+            failureThreshold: 5
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+      restartPolicy: Always

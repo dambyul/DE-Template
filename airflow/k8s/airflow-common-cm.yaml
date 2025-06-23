@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    io.kompose.service: Airflow
+  name: airflow
+data:
+  AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+  AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+  AIRFLOW__CORE__FERNET_KEY: pcVamUfC3YOXnweR5sZ1f1viWd1tpI7_vRtjJbFYREk=
+  AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+  AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+  AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+  AIRFLOW__METRICS__STATSD_ON: "true"
+  AIRFLOW__METRICS__STATSD_HOST: statsd-exporter
+  AIRFLOW__METRICS__STATSD_PORT: "9125"
+  AIRFLOW__METRICS__STATSD_PREFIX: airflow
+  AIRFLOW_CONN_GIT_DEFAULT: '{"conn_type": "git", "host": "https://github.com/dambyul/DE-Template.git"}'
+  AIRFLOW__DAG_PROCESSOR__DAG_BUNDLE_CONFIG_LIST: >
+    [{"name": "git-dags-bundle","classpath": "airflow.providers.git.bundles.git.GitDagBundle","kwargs": {"git_conn_id": "git_default","subdir": "airflow/dags","tracking_ref": "main","refresh_interval": 10}}]

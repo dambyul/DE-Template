@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: airflow-dagprocessor
+  name: airflow-dagprocessor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: airflow-dagprocessor
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: airflow-dagprocessor
+    spec:
+      containers:
+        - args:
+            - dag-processor
+          image: dambyul/airflow:de-template
+          name: airflow-dagprocessor
+          envFrom:
+            - configMapRef:
+                name: airflow
+          livenessProbe:
+            exec:
+              command:
+                - airflow
+                - jobs
+                - check
+                - --job-type
+                - DagProcessorJob
+                - --hostname
+                - "$(hostname)"
+            failureThreshold: 5
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+      restartPolicy: Always

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: statsd-exporter
+  name: statsd-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: statsd-exporter
+  template:
+    metadata:
+      labels:
+        io.kompose.service: statsd-exporter
+    spec:
+      containers:
+        - image: prom/statsd-exporter:latest
+          name: airflow-statsd-exporter
+          ports:
+            - containerPort: 9102
+              protocol: TCP
+      restartPolicy: Always

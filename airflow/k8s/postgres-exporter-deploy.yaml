@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: airflow-postgres-exporter
+  name: airflow-postgres-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: airflow-postgres-exporter
+  template:
+    metadata:
+      labels:
+        io.kompose.service: airflow-postgres-exporter
+    spec:
+      containers:
+        - env:
+            - name: DATA_SOURCE_NAME
+              value: postgresql://airflow:airflow@postgres:5432/airflow?sslmode=disable&connect_timeout=5
+          image: prometheuscommunity/postgres-exporter:latest
+          name: airflow-postgres-exporter
+          ports:
+            - containerPort: 9187
+              protocol: TCP
+      restartPolicy: Always

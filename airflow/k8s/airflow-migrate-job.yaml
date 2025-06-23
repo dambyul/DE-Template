@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    io.kompose.service: airflow-migrate
+  name: airflow-migrate
+spec:
+  template:
+    spec:
+      containers:
+        - name: airflow-migrate
+          image: dambyul/airflow:de-template
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              airflow db migrate
+              airflow users create \
+                --username admin \
+                --password admin@@123 \
+                --firstname Airflow \
+                --lastname Admin \
+                --role Admin \
+                --email luna2clipse@gmail.com
+              exec airflow version
+          envFrom:
+            - configMapRef:
+                name: airflow
+      restartPolicy: Never
