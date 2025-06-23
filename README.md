@@ -30,8 +30,12 @@
 - Prometheus
 - Grafana
 
+### TBU : Apache Kafka
+### TBU : Apache Spark
+### TBU : Apache Flink
+
 ## 실행 방법
 ### Docker Compose
 - 필요한 폴더를 다운받아 `.env` 값 수정 후 `docker-compose up -d` 명령어로 실행
 ### Kubernetes
-- 필요한 폴더를 다운받아 내부의 k8s 디렉토리에서 `kubectl apply -f .` 명령어로 실행
+- 필요한 폴더를 다운받아 내부의 k8s  `kubectl apply -f .` 명령어로 실행
