@@ -8,11 +8,11 @@ data:
     scrape_configs:
       - job_name: 'airflow'
         static_configs:
-          - targets: ['192.168.0.102:9102']
+          - targets: ['statsd-exporter:9102']
 
       - job_name: 'airflow-postgres'
         static_configs:
-          - targets: ['192.168.0.102:9187']
+          - targets: ['airflow-postgres-exporter:9187']
 
       - job_name: 'mysql'
         static_configs:
@@ -20,7 +20,7 @@ data:
 
       - job_name: 'postgres'
         static_configs:
-          - targets: ['postgres-exporter:9188']
+          - targets: ['postgres-exporter:9187']
 kind: ConfigMap
 metadata:
   labels:
