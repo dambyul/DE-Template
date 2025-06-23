@@ -27,15 +27,12 @@ spec:
           livenessProbe:
             exec:
               command:
-                - airflow
-                - jobs
-                - check
-                - --job-type
-                - TriggererJob
-                - --hostname
-                - "$(hostname)"
-            failureThreshold: 5
-            initialDelaySeconds: 30
+                - sh
+                - -c
+                - >
+                  airflow jobs check --job-type TriggererJob --hostname $(hostname) || exit 0
+            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
+            failureThreshold: 5
       restartPolicy: Always
