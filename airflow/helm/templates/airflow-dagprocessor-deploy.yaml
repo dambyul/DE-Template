@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-dagprocessor
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount.dagprocessor }}
+  selector:
+    matchLabels:
+      app: airflow-dagprocessor
+  template:
+    metadata:
+      labels:
+        app: airflow-dagprocessor
+    spec:
+      containers:
+      - name: dagprocessor
+        image: {{ .Values.image.airflow }}
+        args: ["dag-processor"]
+        resources:
+{{ toYaml .Values.resources.dagprocessor | indent 10 }}
+        envFrom:
+          - configMapRef:
+              name: {{ .Values.envFrom.configMapRefName | default "airflow-common" }}
+          - secretRef:
+              name: {{ .Values.envFrom.secretRefName | default "airflow-secrets" }}
+        volumeMounts:
+          - name: dags
+            mountPath: /opt/airflow/dags
+      volumes:
+        - name: dags
+          persistentVolumeClaim:
+            claimName: airflow-dags-pvc

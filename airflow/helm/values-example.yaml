@@ -1,0 +1,82 @@
+namespace: airflow
+
+image:
+  airflow: apache/airflow:3.0.4-python3.12
+  postgres: postgres:15
+  redis: redis:7
+
+replicaCount:
+  apiserver: 1
+  scheduler: 1
+  worker: 2
+  triggerer: 1
+  dagprocessor: 1
+
+resources:
+  apiserver: {}
+  scheduler: {}
+  worker: {}
+  triggerer: {}
+  dagprocessor: {}
+
+service:
+  apiserver:
+    type: NodePort
+    port: 8080
+    nodePort: 31000
+  redis:
+    type: ClusterIP
+    port: 6379
+  postgres:
+    type: ClusterIP
+    port: 5432
+
+persistence:
+  airflowApiserver:
+    size: 5Gi
+    path: /home/ubuntu/airflow/dags
+  postgres:
+    size: 10Gi
+
+airflowConfig:
+  AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+  AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+  AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+  AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+  AIRFLOW__CORE__DAG_PROCESSOR_TIMEOUT: "30"
+  AIRFLOW__CORE__DAG_DIR_LIST_INTERVAL: "30"
+  AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://airflow-apiserver:8080/execution/"
+
+secrets:
+  postgres:
+    user: "airflow"
+    password: "***CHANGE_ME***"
+    db: "airflow"
+
+  airflow:
+    sql_alchemy_conn: "postgresql+psycopg2://airflow:***CHANGE_ME***@postgres/airflow"
+    celery_result_backend: "db+postgresql://airflow:***CHANGE_ME***@postgres/airflow"
+    broker_url: "redis://:***CHANGE_ME***@redis:6379/0"
+
+    admin:
+      username: "admin"
+      password: "***CHANGE_ME***"
+      firstname: "Airflow"
+      lastname: "Admin"
+      email: "admin@example.com"
+
+    fernet_key: "***CHANGE_ME***"
+    jwt_secret: "***CHANGE_ME***"
+
+    remote_log_folder: "s3://your-bucket-name/airflow/logs"
+    remote_log_conn_id: "s3_log"
+
+  connections:
+    MYSQL_DW: "mysql://user:***CHANGE_ME***@your-mysql-endpoint:3306/"
+    S3_LOG: "s3://ACCESS_KEY:SECRET_KEY@s3.amazonaws.com?region_name=ap-northeast-2"
+
+envFrom:
+  configMapRefName: airflow-common
+  secretRefName: airflow-secrets

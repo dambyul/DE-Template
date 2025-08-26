@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-apiserver
+  namespace: {{ .Values.namespace }}
+spec:
+  type: {{ .Values.service.apiserver.type }}
+  selector:
+    app: airflow-apiserver
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.apiserver.port }}
+      targetPort: 8080
+      {{- if eq .Values.service.apiserver.type "NodePort" }}
+      nodePort: {{ .Values.service.apiserver.nodePort }}
+      {{- end }}

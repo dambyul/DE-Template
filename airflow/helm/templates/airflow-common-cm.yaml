@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-common
+  namespace: {{ .Values.namespace }}
+data:
+{{- range $key, $val := .Values.airflowConfig }}
+  {{ $key }}: {{ $val | quote }}
+{{- end }}

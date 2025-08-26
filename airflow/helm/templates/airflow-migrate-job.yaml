@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: airflow-migrate
+  namespace: {{ .Values.namespace }}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: {{ .Values.image.airflow }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+
+              # Postgres 대기
+              until nc -z postgres {{ .Values.service.postgres.port }}; do sleep 2; done
+
+              airflow db migrate
+
+              # Admin 사용자 생성
+              airflow users create \
+                --username "$AIRFLOW_ADMIN_USERNAME" \
+                --password "$AIRFLOW_ADMIN_PASSWORD" \
+                --firstname "$AIRFLOW_ADMIN_FIRSTNAME" \
+                --lastname "$AIRFLOW_ADMIN_LASTNAME" \
+                --role Admin \
+                --email "$AIRFLOW_ADMIN_EMAIL" || true
+
+              # 환경변수에서 AIRFLOW_CONN_* 전부 찾아 업서트
+              while IFS='=' read -r VAR_NAME VAR_VAL; do
+                if [[ "$VAR_NAME" == AIRFLOW_CONN_* ]]; then
+                  CONN_ID=$(echo "${VAR_NAME#AIRFLOW_CONN_}" | tr '[:upper:]' '[:lower:]')
+                  CONN_URI="${!VAR_NAME}"
+                  if [[ -n "$CONN_URI" ]]; then
+                    echo "  - upsert connection: ${CONN_ID}"
+                    airflow connections add "$CONN_ID" --conn-uri "$CONN_URI"
+                  fi
+                fi
+              done < <(env)
+
+              exec airflow version
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.envFrom.configMapRefName | default "airflow-common" }}
+            - secretRef:
+                name: {{ .Values.envFrom.secretRefName | default "airflow-secrets" }}

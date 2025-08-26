@@ -1,0 +1,6 @@
+apiVersion: v2
+name: airflow
+description: 로컬 디렉토리 DAG를 사용하는 airflow 시스템
+type: application
+version: 0.1.0
+appVersion: "3.0.4"
