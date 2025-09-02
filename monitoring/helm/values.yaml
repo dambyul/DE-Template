@@ -1,0 +1,190 @@
+namespace: monitoring
+common:
+  partOf: monitoring
+  component: null
+  labels: {}
+  annotations: {}
+
+promtail:
+  image: grafana/promtail:main-653d7ac
+  imagePullPolicy: IfNotPresent
+  resources: {}
+  useKubernetesSD: false
+  jobName: k3s-containers
+  pipelines:
+    enableStandardRelabels: true
+    regexFromPath:
+      expression: .*/(?P<pod>.+)_(?P<namespace>[^_]+)_(?P<container>[^-]+)-.+\.log
+      labels:
+        pod: null
+        namespace: null
+        container: null
+    extraStages: []
+  clients:
+  - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+    batchwait: 1s
+    batchsize: 1048576
+    timeout: 10s
+  targetConfig:
+    syncPeriod: 10s
+  static:
+    path: /var/log/containers/*.log
+    job: pods
+  drop:
+    namespaces: []
+    containers:
+    - kube-proxy
+    - coredns
+    - local-path-provisioner
+  extraRelabels: []
+  extraScrapeConfigs: []
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 3101
+  hostPaths:
+    varlog: /var/log
+    containers: /var/lib/rancher/k3s/agent/containerd/io.containerd.grpc.v1.cri/containers
+  podLabels: {}
+  podAnnotations: {}
+  loki:
+    url: http://loki:3100/loki/api/v1/push
+  kubernetes:
+    namespaces:
+    - airflow
+    - monitoring
+
+grafana:
+  image: grafana/grafana:12.2.0-17253726931-ubuntu
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  adminUser: admin
+  adminPassword: admin
+  podLabels: {}
+  podAnnotations: {}
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 32000
+    labels: {}
+    annotations: {}
+  storage:
+    pvcName: grafana-pvc
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    storageClassName: local-path
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessModes:
+    - ReadWriteOnce
+    storageClassName: local-path
+
+prometheus:
+  replicas: 1
+  image: prom/prometheus:v3.5.0
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 9090
+
+loki:
+  image: grafana/loki:main-81229ef
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 3100
+  persistence:
+    enabled: true
+    size: 20Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: local-path
+  retention:
+    enabled: true
+    period: 72h
+
+
+exporters:
+  node:
+    instances:
+    - name: bastion-server
+      target: 0.0.0.0:9100
+    - name: airflow-server
+      target: 0.0.0.0:9100
+  airflow:
+    instances:
+    - name: main
+      target: statsd-exporter.airflow.svc.cluster.local:9102
+  mysql:
+    image: bitnami/mysqld-exporter:0.17.2
+    replicas: 1
+    resources: {}
+    instances:
+    - name: dw
+      user: exporter
+      password: exporter
+      host: user-mysql-host
+      port: 3306
+  postgres:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    replicas: 1
+    resources: {}
+    instances:
+    - name: airflow
+      user: airflow
+      password: airflow
+      host: postgres-svc.airflow.svc.cluster.local
+      port: 5432
+      database: airflow
+      sslmode: disable
+  redis:
+    image: oliver006/redis_exporter:v1.76.0
+    replicas: 1
+    resources: {}
+    instances:
+    - name: airflow
+      host: redis-svc.airflow.svc.cluster.local
+      port: 6379
+
+mysqldExporter:
+  image: prom/mysqld-exporter:v0.15.1
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 9104
+  service:
+    type: ClusterIP
+    port: 9104
+    labels: {}
+    annotations: {}
+  env: []
+  podLabels: {}
+  podAnnotations: {}
+
+postgresExporter:
+  image: prometheuscommunity/postgres-exporter:v0.15.0
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 9187
+  service:
+    type: ClusterIP
+    port: 9187
+    labels: {}
+    annotations: {}
+  env: []
+  podLabels: {}
+  podAnnotations: {}
+  
+redisExporter:
+  image: oliver006/redis_exporter:v1.62.0
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 9121
+  service:
+    type: ClusterIP
+    port: 9121
+    labels: {}
+    annotations: {}
+  env: []
+  podLabels: {}
+  podAnnotations: {}

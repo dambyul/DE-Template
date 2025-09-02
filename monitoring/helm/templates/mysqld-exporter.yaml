@@ -1,0 +1,62 @@
+{{- $ns := .Values.namespace }}
+{{- with .Values.exporters.mysql }}
+{{- range .instances }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysqld-exporter-{{ .name }}-config
+  namespace: {{ $ns }}
+data:
+  .my.cnf: |
+    [client]
+    user={{ .user }}
+    password={{ .password }}
+    host={{ .host }}
+    port={{ .port }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysqld-exporter-{{ .name }}
+  namespace: {{ $ns }}
+spec:
+  replicas: {{ $.Values.exporters.mysql.replicas }}
+  selector:
+    matchLabels:
+      app: mysqld-exporter-{{ .name }}
+  template:
+    metadata:
+      labels:
+        app: mysqld-exporter-{{ .name }}
+    spec:
+      containers:
+        - name: mysqld-exporter
+          image: {{ $.Values.exporters.mysql.image }}
+          args:
+            - --config.my-cnf=/etc/mysqld-exporter/.my.cnf
+          ports:
+            - containerPort: 9104
+          volumeMounts:
+            - name: mysql-config
+              mountPath: /etc/mysqld-exporter/.my.cnf
+              subPath: .my.cnf
+          resources:
+            {{- toYaml $.Values.exporters.mysql.resources | nindent 12 }}
+      volumes:
+        - name: mysql-config
+          configMap:
+            name: mysqld-exporter-{{ .name }}-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysqld-exporter-{{ .name }}
+  namespace: {{ $ns }}
+spec:
+  ports:
+    - port: 9104
+      targetPort: 9104
+  selector:
+    app: mysqld-exporter-{{ .name }}
+{{- end }}
+{{- end }}

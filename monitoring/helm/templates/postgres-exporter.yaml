@@ -1,0 +1,43 @@
+{{- $ns := .Values.namespace }}
+{{- with .Values.exporters.postgres }}
+{{- range .instances }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter-{{ .name }}
+  namespace: {{ $ns }}
+spec:
+  replicas: {{ $.Values.exporters.postgres.replicas }}
+  selector:
+    matchLabels:
+      app: postgres-exporter-{{ .name }}
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter-{{ .name }}
+    spec:
+      containers:
+        - name: postgres-exporter
+          image: {{ $.Values.exporters.postgres.image }}
+{{- if .env }}
+          env:
+{{ toYaml .env | indent 12 }}
+{{- end }}
+          ports:
+            - containerPort: 9187
+          resources:
+{{- toYaml $.Values.exporters.postgres.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-exporter-{{ .name }}
+  namespace: {{ $ns }}
+spec:
+  ports:
+    - port: 9187
+      targetPort: 9187
+  selector:
+    app: postgres-exporter-{{ .name }}
+{{- end }}
+{{- end }}

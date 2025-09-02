@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+  annotations:
+{{- $ann := include "chart.mergeAnnotations" . -}}
+{{- if $ann | trim }}
+{{ $ann | indent 4 }}
+{{- else }}
+    {}
+{{- end }}
+spec:
+  replicas: {{ .Values.loki.replicas }}
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+{{- if .Values.loki.podLabels }}
+{{ toYaml .Values.loki.podLabels | indent 8 }}
+{{- end }}
+      annotations:
+{{- if .Values.loki.podAnnotations }}
+{{ toYaml .Values.loki.podAnnotations | indent 8 }}
+{{- else }}
+        {}
+{{- end }}
+    spec:
+      containers:
+        - name: loki
+          image: {{ .Values.loki.image }}
+          imagePullPolicy: {{ .Values.loki.imagePullPolicy | default "IfNotPresent" }}
+          args:
+            - -config.file=/etc/loki/local-config.yaml
+{{- if .Values.loki.extraArgs }}
+{{ toYaml .Values.loki.extraArgs | indent 12 }}
+{{- end }}
+          ports:
+            - containerPort: 3100
+          resources:
+{{ toYaml (.Values.loki.resources | default dict) | indent 12 }}
+          volumeMounts:
+            - name: loki-config
+              mountPath: /etc/loki/local-config.yaml
+              subPath: local-config.yaml
+            - name: loki-storage
+              mountPath: /var/loki
+      volumes:
+        - name: loki-config
+          configMap:
+            name: loki-config
+        - name: loki-storage
+{{- if .Values.loki.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.loki.persistence.claimName | default "loki-pvc" }}
+{{- else }}
+          emptyDir: {}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+{{- if .Values.loki.service.labels }}
+{{ toYaml .Values.loki.service.labels | indent 4 }}
+{{- end }}
+  annotations:
+{{- if .Values.loki.service.annotations }}
+{{ toYaml .Values.loki.service.annotations | indent 4 }}
+{{- else }}
+    {}
+{{- end }}
+spec:
+  type: {{ .Values.loki.service.type }}
+  ports:
+    - port: {{ .Values.loki.service.port }}
+      targetPort: 3100
+  selector:
+    app: loki
+---
+{{- if .Values.loki.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.loki.persistence.claimName | default "loki-pvc" }}
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+  annotations:
+{{- if $ann | trim }}
+{{ $ann | indent 4 }}
+{{- else }}
+    {}
+{{- end }}
+spec:
+  accessModes:
+{{ toYaml .Values.loki.persistence.accessModes | indent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.loki.persistence.size }}
+  storageClassName: {{ .Values.loki.persistence.storageClassName }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+  annotations:
+{{- if $ann | trim }}
+{{ $ann | indent 4 }}
+{{- else }}
+    {}
+{{- end }}
+data:
+  local-config.yaml: |
+    auth_enabled: false
+
+    server:
+      http_listen_port: 3100
+
+    common:
+      path_prefix: /var/loki
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+      storage:
+        filesystem:
+          chunks_directory: /var/loki/chunks
+          rules_directory: /var/loki/rules
+
+    schema_config:
+      configs:
+        - from: 2024-01-01
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+
+    storage_config:
+      tsdb_shipper:
+        active_index_directory: /var/loki/tsdb-index
+        cache_location: /var/loki/tsdb-cache
+      filesystem:
+        directory: /var/loki/chunks
+
+    compactor:
+      working_directory: /var/loki/compactor
+      retention_enabled: {{ .Values.loki.retention.enabled }}
+      delete_request_store: filesystem
+
+    limits_config:
+      retention_period: {{ .Values.loki.retention.period }}
+      allow_structured_metadata: true
+
+    ingester:
+      lifecycler:
+        address: 127.0.0.1
+        ring:
+          kvstore:
+            store: inmemory
+      chunk_idle_period: 5m
+      max_chunk_age: 1h
+      chunk_target_size: 1048576
+
+    query_range:
+      align_queries_with_step: true
+
+    frontend:
+      max_outstanding_per_tenant: 1024

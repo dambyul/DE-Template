@@ -1,0 +1,231 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+  annotations:
+{{- $ann := include "chart.mergeAnnotations" . -}}
+{{- if $ann | trim }}
+{{ $ann | indent 4 }}
+{{- else }}
+    {}
+{{- end }}
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: {{ .Values.promtail.service.port }}
+      grpc_listen_port: 0
+
+    positions:
+      filename: /run/promtail/positions.yaml
+
+    clients:
+{{- range $i, $c := .Values.promtail.clients }}
+      - url: {{ $c.url | quote }}
+{{- if $c.batchwait }}
+        batchwait: {{ $c.batchwait }}
+{{- end }}
+{{- if $c.batchsize }}
+        batchsize: {{ $c.batchsize }}
+{{- end }}
+{{- if $c.timeout }}
+        timeout: {{ $c.timeout }}
+{{- end }}
+{{- end }}
+
+    target_config:
+      sync_period: {{ .Values.promtail.targetConfig.syncPeriod }}
+
+    scrape_configs:
+      - job_name: {{ .Values.promtail.jobName | default "k3s-containers" }}
+        pipeline_stages:
+          - cri: {}
+{{- if .Values.promtail.pipelines.regexFromPath }}
+          - regex:
+              expression: {{ .Values.promtail.pipelines.regexFromPath.expression | quote }}
+              source: filename
+          - labels:
+{{ toYaml .Values.promtail.pipelines.regexFromPath.labels | indent 14 }}
+{{- end }}
+{{- if .Values.promtail.pipelines.extraStages }}
+{{ toYaml .Values.promtail.pipelines.extraStages | indent 10 }}
+{{- end }}
+
+{{- if .Values.promtail.useKubernetesSD }}
+        kubernetes_sd_configs:
+        - role: pod
+        relabel_configs:
+          - action: replace
+            source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+{{- else }}
+        static_configs:
+          - targets: ["localhost"]
+            labels:
+              __path__: {{ .Values.promtail.static.path | quote }}
+        relabel_configs:
+          - action: replace
+            target_label: job
+            replacement: {{ .Values.promtail.static.job | default "pods" }}
+          - action: labeldrop
+            regex: ^filename$
+{{- end }}
+
+{{- if .Values.promtail.drop.namespaces }}
+          - action: drop
+            source_labels: [{{ if .Values.promtail.useKubernetesSD }}__meta_kubernetes_namespace{{ else }}namespace{{ end }}]
+            regex: {{ join "|" .Values.promtail.drop.namespaces }}
+{{- end }}
+{{- if .Values.promtail.drop.containers }}
+          - action: drop
+            source_labels: [{{ if .Values.promtail.useKubernetesSD }}__meta_kubernetes_pod_container_name{{ else }}container{{ end }}]
+            regex: {{ join "|" .Values.promtail.drop.containers }}
+{{- end }}
+{{- if .Values.promtail.pipelines.enableStandardRelabels }}
+          - action: labeldrop
+            regex: (controller_revision_hash|pod_template_hash|annotation_.*)
+{{- end }}
+{{- if .Values.promtail.extraRelabels }}
+{{ toYaml .Values.promtail.extraRelabels | indent 10 }}
+{{- end }}
+
+{{- if .Values.promtail.extraScrapeConfigs }}
+{{ toYaml .Values.promtail.extraScrapeConfigs | indent 6 }}
+{{- end }}
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+  annotations:
+{{ include "chart.mergeAnnotations" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+{{ include "chart.selectorLabels" . | indent 6 }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+{{ include "chart.selectorLabels" . | indent 8 }}
+{{- if .Values.promtail.podLabels }}
+{{ toYaml .Values.promtail.podLabels | indent 8 }}
+{{- end }}
+      annotations:
+{{- if .Values.promtail.podAnnotations }}
+{{ toYaml .Values.promtail.podAnnotations | indent 8 }}
+{{- else }}
+        {}
+{{- end }}
+    spec:
+      serviceAccountName: promtail
+      securityContext:
+        fsGroup: 0
+        runAsUser: 0
+        runAsGroup: 0
+      containers:
+        - name: promtail
+          image: {{ .Values.promtail.image }}
+          imagePullPolicy: {{ .Values.promtail.imagePullPolicy | default "IfNotPresent" }}
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+          ports:
+            - name: http-metrics
+              containerPort: {{ .Values.promtail.service.port }}
+          resources:
+{{ toYaml .Values.promtail.resources | indent 12 }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: positions
+              mountPath: /run/promtail
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: containers
+              mountPath: /var/lib/rancher/k3s/agent/containerd/io.containerd.grpc.v1.cri/containers
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: promtail
+        - name: positions
+          emptyDir: {}
+        - name: varlog
+          hostPath:
+            path: {{ .Values.promtail.hostPaths.varlog }}
+        - name: containers
+          hostPath:
+            path: {{ .Values.promtail.hostPaths.containers }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promtail
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: promtail
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "pods", "namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: promtail
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: promtail
+subjects:
+  - kind: ServiceAccount
+    name: promtail
+    namespace: {{ .Values.namespace }}
+---
+{{- if .Values.promtail.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: promtail
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+spec:
+  type: {{ .Values.promtail.service.type }}
+  selector:
+{{ include "chart.selectorLabels" . | indent 4 }}
+  ports:
+    - name: http-metrics
+      port: {{ .Values.promtail.service.port }}
+      targetPort: http-metrics
+{{- end }}

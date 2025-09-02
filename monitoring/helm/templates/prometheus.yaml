@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+  annotations:
+{{- $ann := include "chart.mergeAnnotations" . -}}
+{{- if $ann | trim }}
+{{ $ann | indent 4 }}
+{{- else }}
+    {}
+{{- end }}
+data:
+  prometheus.yml: |-
+{{- if .Values.prometheus.config }}
+{{ toYaml .Values.prometheus.config | indent 4 }}
+{{- else }}
+    global:
+      scrape_interval: 15s
+    scrape_configs: []
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+  annotations:
+{{- $ann := include "chart.mergeAnnotations" . -}}
+{{- if $ann | trim }}
+{{ $ann | indent 4 }}
+{{- else }}
+    {}
+{{- end }}
+spec:
+  replicas: {{ .Values.prometheus.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus
+        app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.prometheus.podLabels }}
+{{ toYaml .Values.prometheus.podLabels | indent 8 }}
+{{- end }}
+      annotations:
+{{- if .Values.prometheus.podAnnotations }}
+{{ toYaml .Values.prometheus.podAnnotations | indent 8 }}
+{{- else }}
+        {}
+{{- end }}
+    spec:
+      containers:
+        - name: prometheus
+          image: {{ .Values.prometheus.image }}
+          imagePullPolicy: {{ .Values.prometheus.imagePullPolicy | default "IfNotPresent" }}
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+          ports:
+            - name: http
+              containerPort: {{ .Values.prometheus.service.port }}
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: {{ .Values.namespace }}
+  labels:
+{{ include "chart.mergeLabels" . | indent 4 }}
+{{- if .Values.prometheus.service.labels }}
+{{ toYaml .Values.prometheus.service.labels | indent 2 }}
+{{- end }}
+  annotations:
+{{- if .Values.prometheus.service.annotations }}
+{{ toYaml .Values.prometheus.service.annotations | indent 2 }}
+{{- else }}
+    {}
+{{- end }}
+spec:
+  type: {{ .Values.prometheus.service.type }}
+  selector:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: {{ .Values.prometheus.service.port }}
+      targetPort: http
