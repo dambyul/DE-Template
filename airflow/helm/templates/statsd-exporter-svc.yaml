@@ -1,0 +1,25 @@
+{{- if .Values.statsdExporter.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: statsd-exporter
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: statsd-exporter
+spec:
+  selector:
+    app: statsd-exporter
+  ports:
+    - name: metrics
+      port: {{ .Values.statsdExporter.service.ports.metrics | default 9102 }}
+      targetPort: http
+      protocol: TCP
+    - name: statsd-tcp
+      port: {{ .Values.statsdExporter.service.ports.statsd | default 9125 }}
+      targetPort: statsd-tcp
+      protocol: TCP
+    - name: statsd-udp
+      port: {{ .Values.statsdExporter.service.ports.statsd | default 9125 }}
+      targetPort: statsd-udp
+      protocol: UDP
+{{- end }}

@@ -1,0 +1,61 @@
+{{- if .Values.statsdExporter.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: statsd-exporter
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: statsd-exporter
+spec:
+  replicas: {{ .Values.statsdExporter.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: statsd-exporter
+  template:
+    metadata:
+      labels:
+        app: statsd-exporter
+      {{- if .Values.statsdExporter.mapping }}
+      annotations:
+        checksum/mapping: {{ toYaml .Values.statsdExporter.mapping | sha256sum }}
+      {{- end }}
+    spec:
+      containers:
+        - name: statsd-exporter
+          image: {{ .Values.statsdExporter.image | default "prom/statsd-exporter:v0.26.1" }}
+          imagePullPolicy: IfNotPresent
+          args:
+            {{- if .Values.statsdExporter.mapping }}
+            - --statsd.mapping-config=/etc/statsd/mapping.yaml
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.statsdExporter.service.ports.metrics | default 9102 }}
+            - name: statsd-tcp
+              containerPort: {{ .Values.statsdExporter.service.ports.statsd | default 9125 }}
+              protocol: TCP
+            - name: statsd-udp
+              containerPort: {{ .Values.statsdExporter.service.ports.statsd | default 9125 }}
+              protocol: UDP
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: http
+          resources:
+{{ toYaml .Values.statsdExporter.resources | default "{}" | indent 12 }}
+          {{- if .Values.statsdExporter.mapping }}
+          volumeMounts:
+            - name: mapping
+              mountPath: /etc/statsd
+          {{- end }}
+      {{- if .Values.statsdExporter.mapping }}
+      volumes:
+        - name: mapping
+          configMap:
+            name: statsd-exporter-mapping
+      {{- end }}
+{{- end }}
