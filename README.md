@@ -26,9 +26,11 @@
 - PostgreSQL
 - Postgres Exporter
 
-### [Prometheus, Grafana](prometheus+grafana)
+### [Monitoring](monitoring)
 - Prometheus
 - Grafana
+- Promtail
+- Loki
 
 ### TBU : Apache Kafka
 ### TBU : Apache Spark
