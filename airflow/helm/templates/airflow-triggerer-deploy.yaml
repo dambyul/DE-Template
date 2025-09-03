@@ -13,21 +13,49 @@ spec:
       labels:
         app: airflow-triggerer
     spec:
+      initContainers:
+        - name: pip-install
+          image: {{ .Values.image.airflow }}
+          securityContext:
+            runAsUser: 0
+          command: ["/bin/bash","-lc"]
+          args:
+          - python -m pip install --no-cache-dir --upgrade pip && python -m pip install --no-cache-dir -r /requirements/requirements.txt --target /opt/sitepackages
+          volumeMounts:
+            - name: sitepackages
+              mountPath: /opt/sitepackages
+            - name: requirements
+              mountPath: /requirements
+
       containers:
-      - name: triggerer
-        image: {{ .Values.image.airflow }}
-        args: ["triggerer"]
-        resources:
-{{ toYaml .Values.resources.triggerer | indent 10 }}
-        envFrom:
-          - configMapRef:
-              name: {{ .Values.envFrom.configMapRefName | default "airflow-common" }}
-          - secretRef:
-              name: {{ .Values.envFrom.secretRefName | default "airflow-secrets" }}
-        volumeMounts:
-          - name: dags
-            mountPath: /opt/airflow/dags
+        - name: triggerer
+          image: {{ .Values.image.airflow }}
+          args: ["triggerer"]
+          env:
+            - name: PYTHONPATH
+              value: "/opt/sitepackages:${PYTHONPATH}"
+          resources:
+{{ toYaml .Values.resources.triggerer | indent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.envFrom.configMapRefName | default "airflow-common" }}
+            - secretRef:
+                name: {{ .Values.envFrom.secretRefName | default "airflow-secrets" }}
+          volumeMounts:
+            - name: dags
+              mountPath: /opt/airflow/dags
+            - name: sitepackages
+              mountPath: /opt/sitepackages
+
       volumes:
         - name: dags
           persistentVolumeClaim:
             claimName: airflow-dags-pvc
+        - name: sitepackages
+          emptyDir: {}
+        - name: requirements
+          configMap:
+            name: airflow-requirements
+            items:
+              - key: requirements.txt
+                path: requirements.txt

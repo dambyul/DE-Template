@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-requirements
+  namespace: {{ .Values.namespace }}
+data:
+  requirements.txt: |
+    some_pip_package==1.2.3
