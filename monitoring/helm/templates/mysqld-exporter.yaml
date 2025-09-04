@@ -1,6 +1,7 @@
 {{- $ns := .Values.namespace }}
 {{- with .Values.exporters.mysql }}
 {{- range .instances }}
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -22,41 +23,41 @@ metadata:
 spec:
   replicas: {{ $.Values.exporters.mysql.replicas }}
   selector:
-    matchLabels:
-      app: mysqld-exporter-{{ .name }}
+    matchLabels: { app: mysqld-exporter-{{ .name }} }
   template:
     metadata:
-      labels:
-        app: mysqld-exporter-{{ .name }}
+      labels: { app: mysqld-exporter-{{ .name }} }
     spec:
       containers:
         - name: mysqld-exporter
           image: {{ $.Values.exporters.mysql.image }}
-          args:
-            - --config.my-cnf=/etc/mysqld-exporter/.my.cnf
-          ports:
-            - containerPort: 9104
+          args: [ "--config.my-cnf=/etc/mysqld-exporter/.my.cnf" ]
+          ports: [ { containerPort: {{ $.Values.exporters.mysql.port }} } ]
           volumeMounts:
             - name: mysql-config
               mountPath: /etc/mysqld-exporter/.my.cnf
               subPath: .my.cnf
           resources:
-            {{- toYaml $.Values.exporters.mysql.resources | nindent 12 }}
+{{ toYaml $.Values.exporters.mysql.resources | indent 12 }}
       volumes:
         - name: mysql-config
-          configMap:
-            name: mysqld-exporter-{{ .name }}-config
+          configMap: { name: mysqld-exporter-{{ .name }}-config }
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: mysqld-exporter-{{ .name }}
   namespace: {{ $ns }}
+  labels:
+{{ toYaml $.Values.exporters.mysql.service.labels | indent 4 }}
+  annotations:
+{{ toYaml $.Values.exporters.mysql.service.annotations | indent 4 }}
 spec:
+  type: {{ $.Values.exporters.mysql.service.type }}
+  selector: { app: mysqld-exporter-{{ .name }} }
   ports:
-    - port: 9104
-      targetPort: 9104
-  selector:
-    app: mysqld-exporter-{{ .name }}
+    - name: http
+      port: {{ $.Values.exporters.mysql.port }}
+      targetPort: {{ $.Values.exporters.mysql.port }}
 {{- end }}
 {{- end }}

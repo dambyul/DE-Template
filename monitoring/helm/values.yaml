@@ -1,4 +1,6 @@
 namespace: monitoring
+clusterDomain: cluster.local
+
 common:
   partOf: monitoring
   component: null
@@ -59,7 +61,7 @@ grafana:
   imagePullPolicy: IfNotPresent
   replicas: 1
   adminUser: admin
-  adminPassword: admin
+  adminPassword: grafana123
   podLabels: {}
   podAnnotations: {}
   service:
@@ -85,8 +87,9 @@ prometheus:
   image: prom/prometheus:v3.5.0
   resources: {}
   service:
-    type: ClusterIP
+    type: NodePort # 테스트 하고 ClusterIP로 변경할 것
     port: 9090
+    nodePort: 32090
 
 loki:
   image: grafana/loki:main-81229ef
@@ -104,87 +107,67 @@ loki:
     enabled: true
     period: 72h
 
-
 exporters:
   node:
     instances:
-    - name: bastion-server
-      target: 0.0.0.0:9100
-    - name: airflow-server
-      target: 0.0.0.0:9100
+      - name: bastion-server
+        target: 0.0.0.0:9100
+      - name: airflow-server
+        target: 0.0.0.0:9100
+
   airflow:
     instances:
-    - name: main
-      target: statsd-exporter.airflow.svc.cluster.local:9102
+      - name: main
+        target: statsd-exporter.airflow.svc.cluster.local:9102
+
   mysql:
     image: bitnami/mysqld-exporter:0.17.2
     replicas: 1
+    port: 9104
+    service:
+      type: ClusterIP
+      labels: {}
+      annotations: {}
     resources: {}
     instances:
-    - name: dw
-      user: exporter
-      password: exporter
-      host: user-mysql-host
-      port: 3306
+      - name: dw
+        user: exporter
+        password: exporter
+        host: mysqlhost.com
+        port: 3306
+
   postgres:
     image: prometheuscommunity/postgres-exporter:v0.17.1
     replicas: 1
+    port: 9187
+    service:
+      type: ClusterIP
+      labels: {}
+      annotations: {}
     resources: {}
     instances:
-    - name: airflow
-      user: airflow
-      password: airflow
-      host: postgres-svc.airflow.svc.cluster.local
-      port: 5432
-      database: airflow
-      sslmode: disable
+      - name: airflow
+        user: airflow
+        password: airflow
+        host: postgres-svc.airflow.svc.cluster.local
+        port: 5432
+        database: airflow
+        sslmode: disable
+
   redis:
     image: oliver006/redis_exporter:v1.76.0
     replicas: 1
+    port: 9121
+    service:
+      type: ClusterIP
+      labels: {}
+      annotations: {}
     resources: {}
     instances:
-    - name: airflow
-      host: redis-svc.airflow.svc.cluster.local
-      port: 6379
-
-mysqldExporter:
-  image: prom/mysqld-exporter:v0.15.1
-  imagePullPolicy: IfNotPresent
-  replicas: 1
-  port: 9104
-  service:
-    type: ClusterIP
-    port: 9104
-    labels: {}
-    annotations: {}
-  env: []
-  podLabels: {}
-  podAnnotations: {}
-
-postgresExporter:
-  image: prometheuscommunity/postgres-exporter:v0.15.0
-  imagePullPolicy: IfNotPresent
-  replicas: 1
-  port: 9187
-  service:
-    type: ClusterIP
-    port: 9187
-    labels: {}
-    annotations: {}
-  env: []
-  podLabels: {}
-  podAnnotations: {}
-  
-redisExporter:
-  image: oliver006/redis_exporter:v1.62.0
-  imagePullPolicy: IfNotPresent
-  replicas: 1
-  port: 9121
-  service:
-    type: ClusterIP
-    port: 9121
-    labels: {}
-    annotations: {}
-  env: []
-  podLabels: {}
-  podAnnotations: {}
+      - name: airflow
+        host: redis-svc.airflow.svc.cluster.local
+        port: 6379
+        # user: default
+        # password: yourpass
+        # passwordSecretName: redis-auth-airflow
+        # passwordSecretKey: password

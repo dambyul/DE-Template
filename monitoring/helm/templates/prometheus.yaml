@@ -14,13 +14,62 @@ metadata:
 {{- end }}
 data:
   prometheus.yml: |-
-{{- if .Values.prometheus.config }}
-{{ toYaml .Values.prometheus.config | indent 4 }}
-{{- else }}
     global:
       scrape_interval: 15s
-    scrape_configs: []
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: ['localhost:9090']
+
+{{- if and .Values.exporters.node .Values.exporters.node.instances }}
+      - job_name: node-exporter-external
+        static_configs:
+          - targets:
+{{- range .Values.exporters.node.instances }}
+              - '{{ .target }}'
 {{- end }}
+{{- end }}
+
+{{- if and .Values.exporters.airflow .Values.exporters.airflow.instances }}
+      - job_name: airflow-statsd-exporter
+        static_configs:
+          - targets:
+{{- range .Values.exporters.airflow.instances }}
+              - '{{ .target }}'
+{{- end }}
+{{- end }}
+
+{{- if and .Values.exporters.mysql .Values.exporters.mysql.instances }}
+      - job_name: mysql-exporters
+        static_configs:
+          - targets:
+{{- range .Values.exporters.mysql.instances }}
+{{- $t := .target | default (printf "mysqld-exporter-%s:%v" .name $.Values.exporters.mysql.port) }}
+              - '{{ $t }}'
+{{- end }}
+{{- end }}
+
+{{- if and .Values.exporters.postgres .Values.exporters.postgres.instances }}
+      - job_name: postgres-exporters
+        static_configs:
+          - targets:
+{{- range .Values.exporters.postgres.instances }}
+{{- $t := .target | default (printf "postgres-exporter-%s:%v" .name $.Values.exporters.postgres.port) }}
+              - '{{ $t }}'
+{{- end }}
+{{- end }}
+
+{{- if and .Values.exporters.redis .Values.exporters.redis.instances }}
+      - job_name: redis-exporters
+        static_configs:
+          - targets:
+{{- range .Values.exporters.redis.instances }}
+{{- $t := .target | default (printf "redis-exporter-%s:%v" .name $.Values.exporters.redis.port) }}
+              - '{{ $t }}'
+{{- end }}
+{{- end }}
+
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -100,3 +149,6 @@ spec:
     - name: http
       port: {{ .Values.prometheus.service.port }}
       targetPort: http
+      {{- if eq .Values.prometheus.service.type "NodePort" }}
+      nodePort: {{ .Values.prometheus.service.nodePort }}
+      {{- end }}
