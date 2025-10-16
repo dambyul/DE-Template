@@ -1,0 +1,2 @@
+web: airflow api-server --port $PORT & airflow scheduler & airflow dag-processor & airflow triggerer
+worker: airflow celery worker
