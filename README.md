@@ -1,43 +1,44 @@
 # DE-Template
-- 데이터 파이프라인 구축을 빠르게 진행하기 위한 프레임워크 및 솔루션 구축 템플릿화 프로젝트
-- 폴더별로 필요한 시스템을 docker-compose 혹은 k8s를 사용하여 빠르게 구축할 수 있는 것을 목표로 함
-- 모든 이미지는 latest 버전을 사용하였음
 
-## 사전 요구 사항 (택1)
-- Docker 및 Docker-compose
-- Kubernetes
+데이터 엔지니어링 파이프라인 구축을 위한 템플릿 프로젝트입니다.  
+Docker Compose, Kubernetes, Helm, Heroku 등 다양한 환경에서 Airflow, DBT, 데이터베이스, 모니터링 시스템을 빠르게 배포하고 운영할 수 있도록 구성되어 있습니다.
 
-## 구성요소
-### [Airflow](airflow) 
-- Apache Airflow
-- PostgreSQL
-- Redis
-- Postgres Exporter
-- Statsd Exporter
+## 사전 요구 사항
 
-### [DBT](dbt) 
-- DBT
+사용하고자 하는 환경에 따라 아래 도구들이 필요합니다.
 
-### [MySQL](mysql)
-- MySQL
-- MySQL Exporter
+- **Docker & Docker Compose**: 컨테이너 기반 로컬 실행 시 필요
+- **Kubernetes (kubectl)**: 쿠버네티스 클러스터 배포 시 필요
+- **Helm**: Helm Chart를 이용한 배포 시 필요 (선택 사항)
+- **Heroku CLI**: Heroku 배포 시 필요 (Airflow 전용)
 
-### [PostgreSQL](postgres)
-- PostgreSQL
-- Postgres Exporter
+## 구성 요소
 
-### [Monitoring](monitoring)
-- Prometheus
-- Grafana
-- Promtail
-- Loki
+각 디렉토리별 상세 문서는 링크를 참조하세요.
 
-### TBU : Apache Kafka
-### TBU : Apache Spark
-### TBU : Apache Flink
+| 컴포넌트 | 설명 | 지원 환경 | 문서 링크 |
+| --- | --- | --- | --- |
+| **Airflow** | 워크플로우 관리 및 스케줄링 | Docker, K8s, Helm, Heroku | [바로가기](airflow/README.md) |
+| **DBT** | 데이터 변환 | Docker, K8s | [바로가기](dbt/README.md) |
+| **MySQL** | 관계형 데이터베이스 | Docker, K8s | [바로가기](mysql/README.md) |
+| **PostgreSQL** | 관계형 데이터베이스 | Docker, K8s | [바로가기](postgres/README.md) |
+| **Monitoring** | Prometheus, Grafana, Loki (모니터링 & 로깅) | Docker, K8s, Helm | [바로가기](monitoring/README.md) |
 
-## 실행 방법
-### Docker Compose
-- 필요한 폴더를 다운받아 `.env` 값 수정 후 `docker-compose up -d` 명령어로 실행
-### Kubernetes
-- 필요한 폴더를 다운받아 내부의 k8s  `kubectl apply -f .` 명령어로 실행
+## 시작하기
+
+### 1. Docker Compose 실행
+각 폴더로 이동하여 환경 변수(`.env`)를 설정한 후 실행합니다.
+
+```bash
+cd <component_folder>
+# .env 파일 수정
+docker-compose up -d
+```
+
+### 2. Kubernetes 배포
+각 폴더의 `k8s` 디렉토리에 있는 매니페스트를 적용합니다.
+
+```bash
+cd <component_folder>
+kubectl apply -f k8s/
+```
